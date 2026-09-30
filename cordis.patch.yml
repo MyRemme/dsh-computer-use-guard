@@ -1,0 +1,10 @@
+# Bundle patch layer: one host row for the gate itself. The `dsh.client`
+# declaration makes the web app load ./client.js as the browser half, which
+# contributes the "电脑操作权限" preference row in 通用设置.
+#
+# The entry id doubles as the plugin's settings namespace, so the client half
+# reads the same Config through ctx.configForms.get("dsh-computer-use-guard")
+# — the same convention dsh-context follows.
+- insert:
+    - id: dsh-computer-use-guard
+      name: dsh-computer-use-guard

@@ -15,7 +15,9 @@
     "cordis.patch.yml",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "screenshots.json",
+    "docs/"
   ],
   "repository": {
     "type": "git",

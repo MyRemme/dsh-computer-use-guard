@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- README 增加两张界面截图（通用设置主行、「精细控制」高级区），并新增
+  `screenshots.json` 供插件市场读取。
+
 ## 0.1.0
 
 首个版本。

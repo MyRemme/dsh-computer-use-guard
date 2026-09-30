@@ -32,38 +32,50 @@
 | --- | --- | --- |
 | `observe` | `auto` | 20 个只读工具：截图、窗口树、剪贴板读取、驱动诊断 |
 | `input` | `auto` | 点击、拖拽、打字、快捷键、滚动 |
-| `agentCursor` | `auto` | 屏幕上的代理指针 |
-| `window` | `auto` | 激活窗口、调整窗口、启动程序 |
-| `browser` | `auto` | 浏览器自动化 |
+| `agentCursor` | `auto` | 屏幕上的代理指针外观与动画 |
+| `window` | `auto` | 激活窗口、调整窗口位置与尺寸 |
 | `clipboard` | `auto` | 写入系统剪贴板 |
-| `recording` | `auto` | 录屏、轨迹录制、会话生命周期 |
-| `process` | `deny` | 结束进程 |
+| `browser` | `auto` | 标签页内导航、点击、输入、滚动 |
+| `session` | `auto` | 电脑操作会话的创建与结束（本身不触碰桌面） |
+| `launch` | `ask` | 启动任意本地程序 |
+| `browserPrivileged` | `ask` | 附加用户浏览器、上传下载本地文件、执行页面脚本 |
+| `recording` | `ask` | 录屏 |
+| `escalate` | `ask` | 把驱动提升到更高的完整性级别 |
 | `menu` | `ask` | 调用原生应用菜单项 |
 | `replay` | `ask` | 重放已录制的轨迹 |
 | `install` | `ask` | 安装外部依赖（例如 ffmpeg） |
+| `process` | `deny` | 结束进程 |
 | `driver` | `deny` | 改写 cua-driver 自身配置 |
 | `unknown` | `deny` | 本闸门不认识的 computer-use 工具 |
 
-两个显式名单优先于类别档位：
+分组按**默认姿态**切，不按重要性：默认放行的七个（`observe`、`input`、
+`agentCursor`、`window`、`clipboard`、`browser`、`session`）直接显示在行内，
+其余十个默认更严格的收在「精细控制」展开区。
 
-- `allowedTools`：非空时**只有**名单内的裸工具名走 `auto`，其余一律 `deny`。
-- `deniedTools`：在放行名单之后生效，名单内的裸工具名一律 `deny`。
+两个显式名单在类别档位之前判定：
 
-两者都是逗号分隔的**裸工具名**（不带 `cua_driver_native__` 前缀），例如
+- `deniedTools`：**最先**判定，命中即 `deny`，不受档位与放行名单影响。
+- `allowedTools`：非空时**只有**名单内的裸工具名走 `auto`，其余一律 `deny`，
+  上方的类别档位全部失效。
+
+判定顺序固定为 `deniedTools` → `allowedTools` → 类别档位，所以把一个名字同时
+写进两个名单，结果是 `deny`。两者都是逗号分隔的**裸工具名**（不带
+`cua_driver_native__` 前缀，大小写不敏感，重复项自动去重），例如
 `click, type_text, get_window_state`。两者都能在设置行底部直接编辑，按回车
-或失焦即写入；放行名单非空时，顶部的摘要行会改报实际生效的名单，而不是被
-它盖掉的档位统计。
+或失焦即写入；放行名单非空时，顶部的摘要行改报实际生效的名单，而不是被它
+盖掉的档位统计，拒绝名单则与档位统计并列显示。
 
 ## 界面
 
 **设置 → 通用设置 → 电脑操作权限**，位于「权限」行下方。每一类一行，
 用原生 `SegmentedControl` 呈现 禁止 / 询问 / 自动授权 三档，改动即时写回。
-顶部的摘要行实时统计当前姿态（例如「禁止 3 类 · 询问 3 类 · 自动授权 7 类」）。
+顶部的摘要行实时统计当前姿态（例如「禁止 3 类 · 询问 7 类 · 自动授权 7 类」）。
 
-![通用设置里的「电脑操作权限」行，七个常用类别各带一个三档分段控件](docs/settings-general.png)
+![通用设置里的「电脑操作权限」行，七个默认放行的类别各带一个三档分段控件](docs/settings-general.png)
 
-「精细控制」展开其余六个类别 —— 进程、菜单、轨迹重放、外部依赖、驱动配置，
-以及本闸门不认识的新工具。这一组默认更严格。
+「精细控制」展开其余十个类别 —— 启动应用、浏览器高权限操作、录屏、提升驱动
+权限、进程、菜单、轨迹重放、外部依赖、驱动配置，以及本闸门不认识的新工具。
+这一组默认更严格。
 
 ![「精细控制」展开后的高级类别](docs/settings-advanced.png)
 
@@ -74,6 +86,18 @@
 
 设置文档取不到时（页面不是本机页面，或 Host 没有提供该命名空间），这一行
 显示原因而不是消失 —— 空行会让人以为开关被删掉了。
+
+## 已知取舍
+
+`ask` 档由本插件自行派发 `approval/request`，绕开了 `dsh-tools` 的
+`serviceAsk`，因此：
+
+- `approval:policy`（`ask` / `never`）对本插件不生效 —— 它总是询问。
+- 官方 `approval/asked` + `approval/decided` 审计对不会落盘。这是缺审计
+  轨迹，不是崩溃：`dsh-user-approval` 的 invariant 只在「有 decided 无 asked」
+  时报错，而本插件两者都不写。
+
+这一取舍是刻意的 —— 见下节。
 
 ## 为什么 `ask` 不走 `{ kind: "ask" }`
 
